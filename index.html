@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Mlrepo by sb2014</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="without-description">
+        <h1>Mlrepo</h1>
+        <p></p>
+        <p class="view"><a href="https://github.com/sb2014/MLRepo">View the Project on GitHub <small>sb2014/MLRepo</small></a></p>
+        <ul>
+          <li><a href="https://github.com/sb2014/MLRepo/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/sb2014/MLRepo/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/sb2014/MLRepo">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <hr><p>title: "Machine Learning - Course Project"
+author: "SB"
+date: "August 16, 2014"</p>
+
+<h2>
+<a name="output-html_document" class="anchor" href="#output-html_document"><span class="octicon octicon-link"></span></a>output: html_document</h2>
+
+<p>Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:<br>
+Class A: Exactly according to the specification<br>
+Class B: Throwing the elbows to the front<br>
+Class C: Lifting the dumbbell only halfway<br>
+Class D: Lowering the dumbbell only halfway<br>
+Class E: Throwing the hips to the front  </p>
+
+<p>Training Data has been provided to reflect the resulting 'Class' of each observation from the above exercise performed by the six participants. The goal is to determine the best 'Prediction Model', which can be used to predict the 'Class' for the Test data provided separately  </p>
+
+<h2>
+<a name="synopsis--" class="anchor" href="#synopsis--"><span class="octicon octicon-link"></span></a>Synopsis:  </h2>
+
+<ul>
+<li>Since the goal of the exercise is to classify the Test data into one of the five 'Classes' defined in the Training data, different classification models have been used to test the accuracy of the models</li>
+<li>The Training data will be further divided into 'Training' and 'Testing' sets in the ratio of 70/30. Each classification model will be run against the 'Training' set and cross-validated against the 'Testing' set. The model with highest accuracy will be selected to predict the 'classe' for the Testing Data provided.</li>
+</ul><h2>
+<a name="data-processing--" class="anchor" href="#data-processing--"><span class="octicon octicon-link"></span></a>Data Processing:  </h2>
+
+<ul>
+<li>Download the files to the working directory<br>
+</li>
+</ul><div class="highlight highlight-r"><pre><span class="kr">if</span><span class="p">(</span><span class="o">!</span><span class="kp">file.exists</span><span class="p">(</span><span class="s">"training.csv"</span><span class="p">))</span> <span class="p">{</span>
+    fileTrain<span class="o">&lt;-</span> <span class="s">"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"</span>
+    download.file<span class="p">(</span>fileTrain<span class="p">,</span> destfile<span class="o">=</span> <span class="s">"./training.csv"</span><span class="p">,</span> method<span class="o">=</span><span class="s">"curl"</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kr">if</span><span class="p">(</span><span class="o">!</span><span class="kp">file.exists</span><span class="p">(</span><span class="s">"testing.csv"</span><span class="p">))</span> <span class="p">{</span>
+    fileTest<span class="o">&lt;-</span> <span class="s">"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"</span>
+    download.file<span class="p">(</span>fileTest<span class="p">,</span> destfile<span class="o">=</span> <span class="s">"./testing.csv"</span><span class="p">,</span> method<span class="o">=</span><span class="s">"curl"</span><span class="p">)</span>
+<span class="p">}</span>
+</pre></div>
+
+<ul>
+<li>Load the data into Training and Testing data frames<br>
+</li>
+</ul><div class="highlight highlight-r"><pre>trainingData<span class="o">&lt;-</span> read.table<span class="p">(</span><span class="s">"training.csv"</span><span class="p">,</span> header<span class="o">=</span><span class="kc">TRUE</span><span class="p">,</span> sep<span class="o">=</span><span class="s">","</span><span class="p">)</span>
+testingData<span class="o">&lt;-</span> read.table<span class="p">(</span><span class="s">"testing.csv"</span><span class="p">,</span> header<span class="o">=</span><span class="kc">TRUE</span><span class="p">,</span> sep<span class="o">=</span><span class="s">","</span><span class="p">)</span>
+</pre></div>
+
+<ul>
+<li>Feature Selection: Since the model will finally be run against the Testing Data, summarize the Testing Data and create a sub-set Training Data set and Testing Data set with only numerical columns not missing majority of the values (NAs)<br>
+</li>
+</ul><div class="highlight highlight-r"><pre>trainSet <span class="o">&lt;-</span> trainingData<span class="p">[,</span><span class="kt">c</span><span class="p">(</span><span class="s">"roll_belt"</span><span class="p">,</span><span class="s">"pitch_belt"</span><span class="p">,</span><span class="s">"yaw_belt"</span><span class="p">,</span> <span class="s">"total_accel_belt"</span><span class="p">,</span> <span class="s">"gyros_belt_x"</span><span class="p">,</span><span class="s">"gyros_belt_y"</span><span class="p">,</span><span class="s">"gyros_belt_z"</span><span class="p">,</span><span class="s">"accel_belt_x"</span><span class="p">,</span><span class="s">"accel_belt_y"</span><span class="p">,</span><span class="s">"accel_belt_z"</span><span class="p">,</span><span class="s">"magnet_belt_x"</span><span class="p">,</span><span class="s">"magnet_belt_y"</span><span class="p">,</span><span class="s">"magnet_belt_z"</span><span class="p">,</span><span class="s">"roll_arm"</span><span class="p">,</span><span class="s">"pitch_arm"</span><span class="p">,</span><span class="s">"yaw_arm"</span><span class="p">,</span><span class="s">"total_accel_arm"</span><span class="p">,</span><span class="s">"gyros_arm_x"</span><span class="p">,</span><span class="s">"gyros_arm_y"</span><span class="p">,</span><span class="s">"gyros_arm_z"</span><span class="p">,</span><span class="s">"accel_arm_x"</span><span class="p">,</span><span class="s">"accel_arm_y"</span><span class="p">,</span><span class="s">"accel_arm_z"</span><span class="p">,</span><span class="s">"magnet_arm_x"</span><span class="p">,</span><span class="s">"magnet_arm_y"</span><span class="p">,</span><span class="s">"magnet_arm_z"</span><span class="p">,</span><span class="s">"roll_dumbbell"</span><span class="p">,</span><span class="s">"pitch_dumbbell"</span><span class="p">,</span><span class="s">"yaw_dumbbell"</span><span class="p">,</span><span class="s">"total_accel_dumbbell"</span><span class="p">,</span><span class="s">"gyros_dumbbell_x"</span><span class="p">,</span><span class="s">"gyros_dumbbell_y"</span><span class="p">,</span><span class="s">"gyros_dumbbell_z"</span><span class="p">,</span><span class="s">"accel_dumbbell_x"</span><span class="p">,</span><span class="s">"accel_dumbbell_y"</span><span class="p">,</span><span class="s">"accel_dumbbell_z"</span><span class="p">,</span><span class="s">"magnet_dumbbell_x"</span><span class="p">,</span><span class="s">"magnet_dumbbell_y"</span><span class="p">,</span><span class="s">"magnet_dumbbell_z"</span><span class="p">,</span><span class="s">"roll_forearm"</span><span class="p">,</span><span class="s">"pitch_forearm"</span><span class="p">,</span><span class="s">"yaw_forearm"</span><span class="p">,</span><span class="s">"total_accel_forearm"</span><span class="p">,</span><span class="s">"gyros_forearm_x"</span><span class="p">,</span><span class="s">"gyros_forearm_y"</span><span class="p">,</span><span class="s">"gyros_forearm_z"</span><span class="p">,</span><span class="s">"accel_forearm_x"</span><span class="p">,</span><span class="s">"accel_forearm_y"</span><span class="p">,</span><span class="s">"accel_forearm_z"</span><span class="p">,</span><span class="s">"magnet_forearm_x"</span><span class="p">,</span><span class="s">"magnet_forearm_y"</span><span class="p">,</span><span class="s">"magnet_forearm_z"</span><span class="p">,</span> <span class="s">"classe"</span><span class="p">)]</span>
+testSet <span class="o">&lt;-</span> testingData<span class="p">[,</span><span class="kt">c</span><span class="p">(</span><span class="s">"roll_belt"</span><span class="p">,</span><span class="s">"pitch_belt"</span><span class="p">,</span><span class="s">"yaw_belt"</span><span class="p">,</span> <span class="s">"total_accel_belt"</span><span class="p">,</span> <span class="s">"gyros_belt_x"</span><span class="p">,</span><span class="s">"gyros_belt_y"</span><span class="p">,</span><span class="s">"gyros_belt_z"</span><span class="p">,</span><span class="s">"accel_belt_x"</span><span class="p">,</span><span class="s">"accel_belt_y"</span><span class="p">,</span><span class="s">"accel_belt_z"</span><span class="p">,</span><span class="s">"magnet_belt_x"</span><span class="p">,</span><span class="s">"magnet_belt_y"</span><span class="p">,</span><span class="s">"magnet_belt_z"</span><span class="p">,</span><span class="s">"roll_arm"</span><span class="p">,</span><span class="s">"pitch_arm"</span><span class="p">,</span><span class="s">"yaw_arm"</span><span class="p">,</span><span class="s">"total_accel_arm"</span><span class="p">,</span><span class="s">"gyros_arm_x"</span><span class="p">,</span><span class="s">"gyros_arm_y"</span><span class="p">,</span><span class="s">"gyros_arm_z"</span><span class="p">,</span><span class="s">"accel_arm_x"</span><span class="p">,</span><span class="s">"accel_arm_y"</span><span class="p">,</span><span class="s">"accel_arm_z"</span><span class="p">,</span><span class="s">"magnet_arm_x"</span><span class="p">,</span><span class="s">"magnet_arm_y"</span><span class="p">,</span><span class="s">"magnet_arm_z"</span><span class="p">,</span><span class="s">"roll_dumbbell"</span><span class="p">,</span><span class="s">"pitch_dumbbell"</span><span class="p">,</span><span class="s">"yaw_dumbbell"</span><span class="p">,</span><span class="s">"total_accel_dumbbell"</span><span class="p">,</span><span class="s">"gyros_dumbbell_x"</span><span class="p">,</span><span class="s">"gyros_dumbbell_y"</span><span class="p">,</span><span class="s">"gyros_dumbbell_z"</span><span class="p">,</span><span class="s">"accel_dumbbell_x"</span><span class="p">,</span><span class="s">"accel_dumbbell_y"</span><span class="p">,</span><span class="s">"accel_dumbbell_z"</span><span class="p">,</span><span class="s">"magnet_dumbbell_x"</span><span class="p">,</span><span class="s">"magnet_dumbbell_y"</span><span class="p">,</span><span class="s">"magnet_dumbbell_z"</span><span class="p">,</span><span class="s">"roll_forearm"</span><span class="p">,</span><span class="s">"pitch_forearm"</span><span class="p">,</span><span class="s">"yaw_forearm"</span><span class="p">,</span><span class="s">"total_accel_forearm"</span><span class="p">,</span><span class="s">"gyros_forearm_x"</span><span class="p">,</span><span class="s">"gyros_forearm_y"</span><span class="p">,</span><span class="s">"gyros_forearm_z"</span><span class="p">,</span><span class="s">"accel_forearm_x"</span><span class="p">,</span><span class="s">"accel_forearm_y"</span><span class="p">,</span><span class="s">"accel_forearm_z"</span><span class="p">,</span><span class="s">"magnet_forearm_x"</span><span class="p">,</span><span class="s">"magnet_forearm_y"</span><span class="p">,</span><span class="s">"magnet_forearm_z"</span><span class="p">)]</span>
+
+</pre></div>
+
+<ul>
+<li>Load the required libraries. Divide the trainingData into Training and Test sets  in 70/30 ratio.</li>
+</ul><div class="highlight highlight-r"><pre><span class="kn">library</span><span class="p">(</span>caret<span class="p">);</span> <span class="kn">library</span><span class="p">(</span>rpart<span class="p">);</span> <span class="kn">library</span><span class="p">(</span>randomForest<span class="p">);</span> <span class="kn">library</span><span class="p">(</span>psych<span class="p">);</span> <span class="kn">library</span><span class="p">(</span>rattle<span class="p">)</span>
+inTrain <span class="o">&lt;-</span> createDataPartition <span class="p">(</span>y<span class="o">=</span> trainSet<span class="o">$</span>classe<span class="p">,</span> p<span class="o">=</span><span class="m">0.7</span><span class="p">,</span> <span class="kt">list</span> <span class="o">=</span> <span class="kc">FALSE</span><span class="p">)</span>
+trainSub <span class="o">&lt;-</span> trainSet<span class="p">[</span>inTrain<span class="p">,]</span>
+testSub <span class="o">&lt;-</span> trainSet<span class="p">[</span><span class="o">-</span>inTrain<span class="p">,]</span>
+</pre></div>
+
+<h2>
+<a name="recursive-partitioning-method" class="anchor" href="#recursive-partitioning-method"><span class="octicon octicon-link"></span></a>Recursive Partitioning Method:</h2>
+
+<ul>
+<li>Train the dataset using the 'Recursive Partitioning' method. Show the resulting classification tree</li>
+</ul><div class="highlight highlight-r"><pre>modelRpart <span class="o">&lt;-</span> train<span class="p">(</span>classe<span class="o">~</span><span class="m">.</span><span class="p">,</span> method<span class="o">=</span><span class="s">"rpart"</span><span class="p">,</span> data<span class="o">=</span>trainSub<span class="p">)</span>
+fancyRpartPlot<span class="p">(</span>modelRpart<span class="o">$</span>finalModel<span class="p">)</span>
+</pre></div>
+
+<p><em>Expected 'Out of Sample Error' of this model will be (1-Accuracy) of the row with least Complexity Parameter (cp) value shown below</em>    </p>
+
+<div class="highlight highlight-r"><pre>modelRpart
+</pre></div>
+
+<ul>
+<li>Predict the values for 'Classe' variable by applying the trained model to the test sub-set.<br>
+</li>
+</ul><div class="highlight highlight-r"><pre>predRpart <span class="o">&lt;-</span> predict<span class="p">(</span>modelRpart<span class="p">,</span>testSub<span class="p">)</span>
+</pre></div>
+
+<p><em>'Estimated Error' of this model based on the cross-validation with the Test subset is represented by (1- Overall Accuracy) shown in the resuls of the Confusion Matrix below:</em>  </p>
+
+<div class="highlight highlight-r"><pre>confusionMatrix<span class="p">(</span>predRpart<span class="p">,</span> testSub<span class="o">$</span>classe<span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="random-forest-method" class="anchor" href="#random-forest-method"><span class="octicon octicon-link"></span></a>Random Forest Method:</h2>
+
+<ul>
+<li>Train the dataset using the 'Random Forest' method. To avoid long computational times, we are limiting the number of cross-validations to 5 through TrainControl parameter<br>
+</li>
+</ul><div class="highlight highlight-r"><pre>fitControl <span class="o">=</span> trainControl<span class="p">(</span>method <span class="o">=</span> <span class="s">"cv"</span><span class="p">,</span> number <span class="o">=</span> <span class="m">5</span><span class="p">)</span>
+modelRf <span class="o">&lt;-</span> train<span class="p">(</span>classe<span class="o">~</span><span class="m">.</span><span class="p">,</span> method<span class="o">=</span><span class="s">"rf"</span><span class="p">,</span> trControl<span class="o">=</span>fitControl<span class="p">,</span> data<span class="o">=</span>trainSub<span class="p">,</span> prox<span class="o">=</span><span class="kc">TRUE</span><span class="p">)</span> 
+</pre></div>
+
+<p><em>Expected 'Out of Sample Error' of this model will be (1-Accuracy) of the row with least Complexity Parameter (cp) value shown below</em>    </p>
+
+<div class="highlight highlight-r"><pre>modelRf
+</pre></div>
+
+<ul>
+<li>Predict the values for 'Classe' variable by applying the trained model to the test sub-set.<br>
+</li>
+</ul><div class="highlight highlight-r"><pre>predRf <span class="o">&lt;-</span> predict<span class="p">(</span>modelRf<span class="p">,</span>testSub<span class="p">)</span>
+</pre></div>
+
+<p><em>'Estimated Error' of this model based on the cross-validation with the Test subset is represented by (1- Overall Accuracy) shown in the resuls of the Confusion Matrix below:</em>  </p>
+
+<div class="highlight highlight-r"><pre>confusionMatrix<span class="p">(</span>predRf<span class="p">,</span> testSub<span class="o">$</span>classe<span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="boosting-method" class="anchor" href="#boosting-method"><span class="octicon octicon-link"></span></a>Boosting Method:</h2>
+
+<ul>
+<li>Train the dataset using the 'Boosting' method. To avoid long computational times, we are limiting the number of cross-validations to 5 through Train Control parameter<br>
+</li>
+</ul><div class="highlight highlight-r"><pre>fitControl <span class="o">=</span> trainControl<span class="p">(</span>method <span class="o">=</span> <span class="s">"cv"</span><span class="p">,</span> number <span class="o">=</span> <span class="m">5</span><span class="p">)</span>
+modelGbm <span class="o">&lt;-</span> train<span class="p">(</span>classe <span class="o">~</span><span class="m">.</span><span class="p">,</span> method<span class="o">=</span><span class="s">"gbm"</span><span class="p">,</span> trControl<span class="o">=</span>fitControl<span class="p">,</span> data<span class="o">=</span>trainSub<span class="p">,</span> verbose<span class="o">=</span><span class="kc">FALSE</span><span class="p">)</span>
+</pre></div>
+
+<p><em>Expected 'Out of Sample Error' of this model will be (1-Accuracy) of the row with least Complexity Parameter (cp) value shown below</em>    </p>
+
+<div class="highlight highlight-r"><pre>modelGbm
+</pre></div>
+
+<ul>
+<li>Predict the values for 'Classe' variable by applying the trained model to the test sub-set.</li>
+</ul><div class="highlight highlight-r"><pre>predGbm <span class="o">&lt;-</span> predict<span class="p">(</span>modelGbm<span class="p">,</span>testSub<span class="p">)</span>
+</pre></div>
+
+<p><em>'Estimated Error' of this model based on the cross-validation with the Test subset is represented by (1- Overall Accuracy) shown in the resuls of the Confusion Matrix below:</em>  </p>
+
+<div class="highlight highlight-r"><pre>confusionMatrix<span class="p">(</span>predGbm<span class="p">,</span> testSub<span class="o">$</span>classe<span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="conclusions" class="anchor" href="#conclusions"><span class="octicon octicon-link"></span></a>Conclusions:</h2>
+
+<ul>
+<li><p>As shown in the results of the confusionMatrix for each of the models, Random Forest method offers the highest accuracy, followed by Boosting method. Lowest accuracy is offered by the simple 'Recursive Partitioning' method out of the three models.</p></li>
+<li><p>Based on these results, we choose to use the Random Forest model to predict the results for the Testing Data</p></li>
+</ul><div class="highlight highlight-r"><pre>predVal <span class="o">&lt;-</span> predict<span class="p">(</span>modelRf<span class="p">,</span> testSet<span class="p">)</span>
+predVal
+</pre></div>
+      </section>
+    </div>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/sb2014">sb2014</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
